@@ -29,20 +29,11 @@ def clean_text(input_text: str) -> str:
     return cleaned_text
 
 def calculate_precision_recall_f1(true_tokens, extracted_tokens):
-    """
-    Calculate precision, recall, and F1-score based on token overlap.
 
-    Args:
-        true_tokens (list): Tokens from the true text.
-        extracted_tokens (list): Tokens from the extracted text.
-
-    Returns:
-        tuple: Precision, recall, and F1-score.
-    """
     true_counter = Counter(true_tokens)
     extracted_counter = Counter(extracted_tokens)
 
-    # Calculate overlap
+    # calculate overlap
     overlap = sum((true_counter & extracted_counter).values())
     precision = overlap / len(extracted_tokens) if extracted_tokens else 0
     recall = overlap / len(true_tokens) if true_tokens else 0
@@ -52,15 +43,7 @@ def calculate_precision_recall_f1(true_tokens, extracted_tokens):
 
 
 def evaluate_extractions_weighted(pairs) -> dict:
-    """
-    Evaluate text extractions by comparing them with true text and weighting scores by text length.
-
-    Args:
-        pairs (List[Tuple[str, str]]): A list of (true_text, extracted_text) tuples.
-
-    Returns:
-        dict: Metrics for each pair, including weighted averages and cumulative scores.
-    """
+    
     total_length = 0
     weighted_similarity_sum = 0
     weighted_bleu_sum = 0
@@ -71,19 +54,16 @@ def evaluate_extractions_weighted(pairs) -> dict:
     results = []
 
     for true_text, extracted_text in pairs:
-        # Calculate weights based on the length of the true text
-        length = len(true_text)  # Weight by number of characters
+        # calculate weights based on the length of the true text
+        length = len(true_text)  # weight by number of characters
         total_length += length
 
-        # Levenshtein-based similarity
         similarity = SequenceMatcher(None, true_text, extracted_text).ratio()
         weighted_similarity_sum += similarity * length
 
-        # BLEU Score using sacrebleu
         bleu_score = sacrebleu.sentence_bleu(extracted_text, [true_text]).score / 100
         weighted_bleu_sum += bleu_score * length
 
-        # Precision, Recall, and F1-score
         true_tokens = true_text.split()
         extracted_tokens = extracted_text.split()
         precision, recall, f1 = calculate_precision_recall_f1(true_tokens, extracted_tokens)
@@ -92,7 +72,7 @@ def evaluate_extractions_weighted(pairs) -> dict:
         weighted_recall_sum += recall * length
         weighted_f1_sum += f1 * length
 
-        # Record metrics for this pair
+        # record metrics for this pair
         results.append({
             "true_text": true_text,
             "extracted_text": extracted_text,
@@ -104,14 +84,14 @@ def evaluate_extractions_weighted(pairs) -> dict:
             "length": length,
         })
 
-    # Calculate weighted averages
+    # calculate weighted averages
     weighted_avg_similarity = weighted_similarity_sum / total_length if total_length else 0
     weighted_avg_bleu = weighted_bleu_sum / total_length if total_length else 0
     weighted_avg_precision = weighted_precision_sum / total_length if total_length else 0
     weighted_avg_recall = weighted_recall_sum / total_length if total_length else 0
     weighted_avg_f1 = weighted_f1_sum / total_length if total_length else 0
 
-    # Summary metrics
+    # summary metrics
     summary = {
         "results": results,
         "weighted_average_similarity": weighted_avg_similarity,
@@ -125,21 +105,19 @@ def evaluate_extractions_weighted(pairs) -> dict:
     return summary
 
 def extract_text_from_image_with_tesseract(cropped_image):
-    # Convert PIL image to OpenCV format
     open_cv_image = cv2.cvtColor(np.array(cropped_image), cv2.COLOR_RGB2BGR)
-    
-    # Use Tesseract to extract data
+
+    # use tesseract to get data
     d = pytesseract.image_to_data(open_cv_image, output_type=Output.DICT)
-    
-    # Extract text from the Tesseract output
+
     extracted_text = []
     n_boxes = len(d['level'])
     for i in range(n_boxes):
         text = d['text'][i].strip()
-        if text:  # Only include non-empty text
+        if text:  
             extracted_text.append(text)
     
-    # Combine the extracted text into a single string
+    # combine everytthing
     return " ".join(extracted_text)
 
 def main():
@@ -151,10 +129,11 @@ def main():
             with open(full_path, 'r') as file:
                 data = json.load(file)
                 data_jsons.append(data)
-    
+
+    # this part is only needed if we expand the dataset
     random_indices = random.sample(range(len(data_jsons)), min(15, len(data_jsons)))
     extractions = {}  # Map index to dictionary of ids to image, true text, extraction
-    for i, idx in enumerate(random_indices):  # Process only the first 5 images
+    for i, idx in enumerate(random_indices):  
         paper_json = data_jsons[idx]
         extractions[i] = []
         print(f"Downloading image {i} ...")
