@@ -21,22 +21,19 @@ def clean_text(input_text: str) -> str:
     
     return cleaned_text
 
-# Set your OpenAI API key
 client = openai.OpenAI(
-  api_key='put openAI key here (we have left ours out for public viewing)'
+  api_key='put openAI key here (we have left ours out for public viewing)',
   base_url="https://api.openai.com/v1"
 )
 
 def extract_text_from_image_with_gpt4o(image, img_type="image/png", prompt="Extract the text from this image. Output only the text from the image."):
   
     try:
-        # Convert the image to Base64 string
         buffer = BytesIO()
         image.save(buffer, format="PNG")
         buffer.seek(0)
         img_b64_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-        # Send the image and prompt to GPT-4o API
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -53,7 +50,6 @@ def extract_text_from_image_with_gpt4o(image, img_type="image/png", prompt="Extr
             ],
         )
 
-        # Extract and return the model's response
         return response.choices[0].message.content
 
     except Exception as e:
@@ -77,7 +73,7 @@ def refine_text_with_gpt4o(input_text):
                 }
             ],
         )
-        # Extract the refined text from the API response
+
         refined_text = response.choices[0].message.content
         return refined_text
     except Exception as e:
@@ -89,7 +85,7 @@ def calculate_precision_recall_f1(true_tokens, extracted_tokens):
     true_counter = Counter(true_tokens)
     extracted_counter = Counter(extracted_tokens)
 
-    # Calculate overlap
+    # calculate overlap
     overlap = sum((true_counter & extracted_counter).values())
     precision = overlap / len(extracted_tokens) if extracted_tokens else 0
     recall = overlap / len(true_tokens) if true_tokens else 0
@@ -110,19 +106,16 @@ def evaluate_extractions_weighted(pairs: List[Tuple[str, str]]) -> dict:
     results = []
 
     for true_text, extracted_text in pairs:
-        # Calculate weights based on the length of the true text
-        length = len(true_text)  # Weight by number of characters
+        # calculate weights based on the length of the true text
+        length = len(true_text)  # weight by number of characters
         total_length += length
 
-        # Levenshtein-based similarity
         similarity = SequenceMatcher(None, true_text, extracted_text).ratio()
         weighted_similarity_sum += similarity * length
 
-        # BLEU Score using sacrebleu
         bleu_score = sacrebleu.sentence_bleu(extracted_text, [true_text]).score / 100
         weighted_bleu_sum += bleu_score * length
 
-        # Precision, Recall, and F1-score
         true_tokens = true_text.split()
         extracted_tokens = extracted_text.split()
         precision, recall, f1 = calculate_precision_recall_f1(true_tokens, extracted_tokens)
@@ -131,7 +124,7 @@ def evaluate_extractions_weighted(pairs: List[Tuple[str, str]]) -> dict:
         weighted_recall_sum += recall * length
         weighted_f1_sum += f1 * length
 
-        # Record metrics for this pair
+        # record everything
         results.append({
             "true_text": true_text,
             "extracted_text": extracted_text,
@@ -143,14 +136,14 @@ def evaluate_extractions_weighted(pairs: List[Tuple[str, str]]) -> dict:
             "length": length,
         })
 
-    # Calculate weighted averages
+    # get weighted averages
     weighted_avg_similarity = weighted_similarity_sum / total_length if total_length else 0
     weighted_avg_bleu = weighted_bleu_sum / total_length if total_length else 0
     weighted_avg_precision = weighted_precision_sum / total_length if total_length else 0
     weighted_avg_recall = weighted_recall_sum / total_length if total_length else 0
     weighted_avg_f1 = weighted_f1_sum / total_length if total_length else 0
 
-    # Summary metrics
+    # summary metrics
     summary = {
         "results": results,
         "weighted_average_similarity": weighted_avg_similarity,
